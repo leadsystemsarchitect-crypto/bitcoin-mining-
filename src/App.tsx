@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Cpu } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { MiningDashboard } from './components/MiningDashboard';
 import { HardwareShop } from './components/HardwareShop';
@@ -25,6 +26,7 @@ export default function App() {
         const parsed = JSON.parse(saved);
         if (!parsed.lostWallets) parsed.lostWallets = {};
         if (!parsed.dormantSwept) parsed.dormantSwept = {};
+        if (!parsed.hardwareHealth) parsed.hardwareHealth = { usb_erupter: 100 };
         return parsed;
       } catch (e) {
         console.error(e);
@@ -54,22 +56,56 @@ export default function App() {
       autoClickerActive: false,
       lostWallets: {},
       dormantSwept: {},
+      hardwareHealth: { usb_erupter: 100 },
     };
   });
 
 
   const [blockProgress, setBlockProgress] = useState<number>(12);
   const [priceChange24h, setPriceChange24h] = useState<number>(3.8);
+  const [idleReport, setIdleReport] = useState<null | { hours: number; btc: number; cost: number }>(null);
+
+  // Calculate idle mining rewards on mount based on time away (capped at 12 hours)
+  useEffect(() => {
+    const now = Date.now();
+    const lastActive = gameState.lastActiveTimestamp || now;
+    const diffSeconds = Math.floor((now - lastActive) / 1000);
+
+    if (diffSeconds > 60) {
+      const maxIdleSeconds = 12 * 3600; // 12 hours max capacity
+      const effectiveSeconds = Math.min(diffSeconds, maxIdleSeconds);
+      const hours = effectiveSeconds / 3600;
+
+      const pool = MINING_POOLS.find((p) => p.id === gameState.activePoolId) || MINING_POOLS[0];
+      const minedBtc = effectiveSeconds * (totalHashRate * 0.0000000008) * pool.luckBonus;
+      const powerCost = hours * (totalPower / 1000) * gameState.electricityRatePerKwH;
+
+      if (minedBtc > 0.0000001) {
+        setGameState((prev) => ({
+          ...prev,
+          btcBalance: prev.btcBalance + minedBtc,
+          usdBalance: Math.max(0, prev.usdBalance - powerCost),
+          lastActiveTimestamp: now,
+        }));
+        setIdleReport({ hours: Number(hours.toFixed(1)), btc: minedBtc, cost: powerCost });
+      } else {
+        setGameState((prev) => ({ ...prev, lastActiveTimestamp: now }));
+      }
+    } else {
+      setGameState((prev) => ({ ...prev, lastActiveTimestamp: now }));
+    }
+  }, []);
 
   // Save state to localStorage
   useEffect(() => {
     localStorage.setItem('satoshrig_state_v3', JSON.stringify(gameState));
   }, [gameState]);
 
-  // Calculate total hashrate and power
+  // Calculate total hashrate and power factoring in hardware health
   const totalHashRate = hardwareList.reduce((acc, item) => {
     const count = gameState.hardware[item.id] || 0;
-    return acc + item.hashRate * count;
+    const health = gameState.hardwareHealth?.[item.id] ?? 100;
+    return acc + item.hashRate * count * (health / 100);
   }, 0) * gameState.overclockLevel;
 
   const totalPower = hardwareList.reduce((acc, item) => {
@@ -122,6 +158,16 @@ export default function App() {
           }
         });
 
+        // Degrade hardware health based on uptime and overclock
+        const updatedHealth = { ...(prev.hardwareHealth || {}) };
+        hardwareList.forEach((item) => {
+          if ((prev.hardware[item.id] || 0) > 0) {
+            const currentHealth = updatedHealth[item.id] ?? 100;
+            const degradation = 0.015 * prev.overclockLevel;
+            updatedHealth[item.id] = Math.max(10, currentHealth - degradation);
+          }
+        });
+
         return {
           ...prev,
           btcBalance: newBtc + addedBtcFromWallets,
@@ -129,6 +175,7 @@ export default function App() {
           bitcoinPrice: Math.round(newPrice),
           totalHashesGenerated: newHashes,
           lostWallets: updatedLostWallets,
+          hardwareHealth: updatedHealth,
           transactions: newTxList,
         };
       });
@@ -250,6 +297,10 @@ export default function App() {
 
       const currentOwned = prev.hardware[item.id] || 0;
       const updatedHardware = { ...prev.hardware, [item.id]: currentOwned + 1 };
+      const updatedHealth = { 
+        ...(prev.hardwareHealth || {}),
+        [item.id]: 100 
+      };
 
       const newTx = {
         id: `tx_${Date.now()}`,
@@ -264,9 +315,42 @@ export default function App() {
         usdBalance: newUsd,
         btcBalance: newBtc,
         hardware: updatedHardware,
+        hardwareHealth: updatedHealth,
         transactions: [...prev.transactions, newTx],
       };
     });
+  };
+
+  // Repair Hardware
+  const handleRepairHardware = (itemId: string) => {
+    const item = hardwareList.find((h) => h.id === itemId);
+    if (!item) return;
+    const health = gameState.hardwareHealth?.[itemId] ?? 100;
+    const repairCost = Math.max(5, Math.round(item.cost * 0.15 * ((100 - health) / 100)));
+
+    if (gameState.usdBalance < repairCost) {
+      alert('Insufficient USD balance to repair hardware.');
+      return;
+    }
+
+    setGameState((prev) => ({
+      ...prev,
+      usdBalance: prev.usdBalance - repairCost,
+      hardwareHealth: {
+        ...prev.hardwareHealth,
+        [itemId]: 100,
+      },
+      transactions: [
+        ...prev.transactions,
+        {
+          id: `tx_repair_${Date.now()}`,
+          type: 'electricity_fee',
+          amountBtc: 0,
+          amountUsd: -repairCost,
+          timestamp: `${new Date().toLocaleTimeString()} (Repaired ${item.name})`,
+        }
+      ]
+    }));
   };
 
   // Select Pool
@@ -378,6 +462,8 @@ export default function App() {
         totalHashRate={totalHashRate}
         overclockLevel={gameState.overclockLevel}
         setOverclockLevel={(lvl) => setGameState((prev) => ({ ...prev, overclockLevel: lvl }))}
+        gameState={gameState}
+        setGameState={setGameState}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
@@ -415,6 +501,7 @@ export default function App() {
             hardwareList={hardwareList}
             gameState={gameState}
             onBuyHardware={handleBuyHardware}
+            onRepairHardware={handleRepairHardware}
           />
         )}
         {activeTab === 'pools' && (
@@ -443,6 +530,44 @@ export default function App() {
       <footer className="border-t border-zinc-900 bg-zinc-950 py-4 text-center text-xs text-zinc-500 font-mono">
         SatoshiRig Decentralized Hash Generator Engine • Secure SHA-256 Protocol
       </footer>
+
+      {idleReport && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Cpu className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Idle Mining Report</h3>
+                <p className="text-xs text-zinc-400">Welcome back, miner!</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 bg-zinc-950 p-4 rounded-xl border border-zinc-800 font-mono text-xs">
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Time Away:</span>
+                <span className="text-white font-bold">{idleReport.hours} Hours (Capped at 12h)</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Bitcoin Mined:</span>
+                <span className="text-emerald-400 font-bold">₿ {idleReport.btc.toFixed(6)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Electricity Cost:</span>
+                <span className="text-amber-400 font-bold">-${idleReport.cost.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIdleReport(null)}
+              className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
+            >
+              Collect Rewards & Resume Mining
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

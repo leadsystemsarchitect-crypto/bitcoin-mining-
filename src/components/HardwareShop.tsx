@@ -1,17 +1,19 @@
 import React from 'react';
-import { ShoppingBag, Cpu, HardDrive, Zap, Server, Box, Activity, ShieldAlert, Check } from 'lucide-react';
+import { ShoppingBag, Cpu, HardDrive, Zap, Server, Box, Activity, ShieldAlert, Check, Wrench, AlertTriangle } from 'lucide-react';
 import { HardwareItem, GameState } from '../types';
 
 interface HardwareShopProps {
   hardwareList: HardwareItem[];
   gameState: GameState;
   onBuyHardware: (item: HardwareItem) => void;
+  onRepairHardware: (itemId: string) => void;
 }
 
 export const HardwareShop: React.FC<HardwareShopProps> = ({
   hardwareList,
   gameState,
   onBuyHardware,
+  onRepairHardware,
 }) => {
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -25,8 +27,88 @@ export const HardwareShop: React.FC<HardwareShopProps> = ({
     }
   };
 
+  const ownedItems = hardwareList.filter((item) => (gameState.hardware[item.id] || 0) > 0);
+
   return (
     <div className="space-y-6">
+      {/* Maintenance & Wear and Tear Section */}
+      {ownedItems.length > 0 && (
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Wrench className="w-4 h-4 text-amber-400" />
+                Hardware Wear & Tear & Maintenance
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Continuous uptime degrades hardware health and reduces efficiency. Repair components to restore 100% hash output.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ownedItems.map((item) => {
+              const health = gameState.hardwareHealth?.[item.id] ?? 100;
+              const repairCost = Math.max(5, Math.round(item.cost * 0.15 * ((100 - health) / 100)));
+              const canAffordRepair = gameState.usdBalance >= repairCost;
+              const isPerfect = health >= 99.9;
+
+              return (
+                <div key={item.id} className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white">{item.name}</span>
+                    <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+                      health > 70 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                      health > 40 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                      'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}>
+                      {health.toFixed(1)}% Health
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          health > 70 ? 'bg-emerald-500' : health > 40 ? 'bg-amber-500' : 'bg-rose-500'
+                        }`}
+                        style={{ width: `${health}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-mono text-zinc-400">
+                      <span>Efficiency: {health.toFixed(0)}%</span>
+                      <span>Owned: {gameState.hardware[item.id]}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between gap-2 border-t border-zinc-900">
+                    <div className="text-xs font-mono">
+                      <span className="text-zinc-400">Repair: </span>
+                      <span className="text-white font-bold">${repairCost.toLocaleString()}</span>
+                    </div>
+                    <button
+                      onClick={() => onRepairHardware(item.id)}
+                      disabled={isPerfect || !canAffordRepair}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${
+                        isPerfect
+                          ? 'bg-zinc-900 text-zinc-500 cursor-not-allowed'
+                          : canAffordRepair
+                          ? 'bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold cursor-pointer'
+                          : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                      }`}
+                    >
+                      <Wrench className="w-3 h-3" />
+                      {isPerfect ? 'Optimal' : 'Repair'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main Hardware Shop */}
       <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 shadow-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
           <div>

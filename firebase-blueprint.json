@@ -1,0 +1,19 @@
+{
+  "entities": {
+    "GameStateSave": {
+      "title": "GameStateSave",
+      "description": "User game state save data",
+      "type": "object",
+      "properties": {
+        "btcBalance": { "type": "number" },
+        "usdBalance": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}/save/{saveId}": {
+      "schema": "GameStateSave",
+      "description": "User game state save document"
+    }
+  }
+}

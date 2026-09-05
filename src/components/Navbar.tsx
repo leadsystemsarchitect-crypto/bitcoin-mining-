@@ -1,5 +1,7 @@
 import React from 'react';
 import { Cpu, Wallet, ShoppingBag, Server, History, Award, TrendingUp, Zap, ShieldCheck, Search, Radio, Bot } from 'lucide-react';
+import { AuthHeader } from './AuthHeader';
+import { GameState } from '../types';
 
 interface NavbarProps {
   activeTab: string;
@@ -11,6 +13,8 @@ interface NavbarProps {
   totalHashRate: number; // in GH/s
   overclockLevel: number;
   setOverclockLevel: (level: number) => void;
+  gameState: GameState;
+  setGameState: React.Dispatch<React.SetStateAction<GameState>>;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -22,7 +26,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   priceChange24h,
   totalHashRate,
   overclockLevel,
-  setOverclockLevel
+  setOverclockLevel,
+  gameState,
+  setGameState,
 }) => {
   const tabs = [
     { id: 'mining', label: 'Mining Rig', icon: Cpu },
@@ -62,6 +68,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <p className="text-xs text-zinc-400">Decentralized Bitcoin Generation & Rig Simulator</p>
             </div>
           </div>
+
+          <AuthHeader gameState={gameState} setGameState={setGameState} />
 
           {/* Quick Metrics */}
           <div className="flex flex-wrap items-center gap-3 text-xs">

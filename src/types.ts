@@ -73,6 +73,8 @@ export interface GameState {
   autoClickerActive: boolean;
   lostWallets: Record<string, { status: 'hidden' | 'scanning' | 'cracking' | 'recovered'; progress: number }>;
   dormantSwept: Record<string, boolean>;
+  hardwareHealth: Record<string, number>; // hardwareId -> health % (0-100)
+  lastActiveTimestamp?: number;
 }
 
 
