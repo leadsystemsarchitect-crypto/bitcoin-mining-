@@ -37,6 +37,22 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
     return () => unsubscribe();
   }, [setGameState]);
 
+  // Auto-sync to Firestore every 60 seconds
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(async () => {
+      try {
+        const docRef = doc(db, 'users', user.uid, 'save', 'game_state');
+        await setDoc(docRef, gameState);
+        setSyncStatus('synced');
+        setTimeout(() => setSyncStatus('idle'), 2000);
+      } catch (e) {
+        console.error('Auto-sync failed:', e);
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [user, gameState]);
+
   const handleSignIn = async () => {
     setLoading(true);
     try {

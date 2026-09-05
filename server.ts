@@ -37,6 +37,11 @@ async function startServer() {
       res.json({ advice: response.text });
     } catch (error: any) {
       console.error('Gemini API Error:', error);
+      if (error?.message?.includes('resource_exhausted') || error?.message?.includes('quota') || error?.status === 429) {
+        return res.json({
+          advice: "Satoshi AI Oracle Note: Gemini API rate limit or quota temporarily reached. Fallback Strategy: Maintain hardware health above 80% to maximize hash efficiency, balance your electricity overhead against pool luck bonuses, and upgrade to FPGA/ASIC units as capital permits."
+        });
+      }
       res.status(500).json({ error: error.message || 'Failed to generate AI advice' });
     }
   });
