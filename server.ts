@@ -9,7 +9,8 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   const apiKey = process.env.GEMINI_API_KEY;
   const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;

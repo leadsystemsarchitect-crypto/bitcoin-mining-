@@ -10,6 +10,7 @@ import { AchievementsView } from './components/AchievementsView';
 import { LostBitcoinView } from './components/LostBitcoinView';
 import { DormantAccountSweeper } from './components/DormantAccountSweeper';
 import { SatoshiAiAdvisor } from './components/SatoshiAiAdvisor';
+import { AnalyticsView } from './components/AnalyticsView';
 import { INITIAL_HARDWARE, MINING_POOLS, INITIAL_ACHIEVEMENTS } from './data/hardware';
 import { INITIAL_LOST_WALLETS } from './data/lostWallets';
 import { DormantAccount } from './data/dormantAccounts';
@@ -481,6 +482,11 @@ export default function App() {
           <SatoshiAiAdvisor
             gameState={gameState}
             totalHashRate={totalHashRate}
+          />
+        )}
+        {activeTab === 'analytics' && (
+          <AnalyticsView
+            gameState={gameState}
           />
         )}
         {activeTab === 'lost_wallets' && (

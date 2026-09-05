@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { signInWithPopup, signOut, User } from 'firebase/auth';
-import { auth, googleAuthProvider, db } from '../lib/firebase';
+import { User } from 'firebase/auth';
+import { db } from '../lib/firebase';
+import { googleSignIn, logout, initAuth } from '../lib/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ShieldCheck, User as UserIcon, LogOut, Loader2, Cloud, CloudCheck } from 'lucide-react';
 import { GameState } from '../types';
@@ -16,7 +17,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+    const unsubscribe = initAuth(async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         // Load cloud save
@@ -33,6 +34,8 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
           console.error('Failed to load cloud save:', e);
         }
       }
+    }, () => {
+      setUser(null);
     });
     return () => unsubscribe();
   }, [setGameState]);
@@ -56,8 +59,11 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
   const handleSignIn = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleAuthProvider);
+      await googleSignIn();
     } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        return;
+      }
       console.error('Sign-in error:', err);
       alert('Sign-in failed: ' + err.message);
     } finally {
@@ -66,7 +72,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
   };
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    await logout();
   };
 
   const handleCloudSync = async () => {

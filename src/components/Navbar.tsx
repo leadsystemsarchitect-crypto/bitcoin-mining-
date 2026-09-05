@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Wallet, ShoppingBag, Server, History, Award, TrendingUp, Zap, ShieldCheck, Search, Radio, Bot } from 'lucide-react';
+import { Cpu, Wallet, ShoppingBag, Server, History, Award, TrendingUp, Zap, ShieldCheck, Search, Radio, Bot, FileSpreadsheet } from 'lucide-react';
 import { AuthHeader } from './AuthHeader';
 import { GameState } from '../types';
 
@@ -34,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'mining', label: 'Mining Rig', icon: Cpu },
     { id: 'shop', label: 'Hardware Shop', icon: ShoppingBag },
     { id: 'ai_advisor', label: 'Satoshi AI Oracle', icon: Bot },
+    { id: 'analytics', label: 'Analytics', icon: FileSpreadsheet },
     { id: 'lost_wallets', label: 'Search Lost Bitcoin', icon: Search },
     { id: 'dormant_accounts', label: 'Dormant Account Sweeper', icon: Radio },
     { id: 'pools', label: 'Mining Pools', icon: Server },

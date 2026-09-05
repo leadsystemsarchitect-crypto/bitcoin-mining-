@@ -7,3 +7,5 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const googleAuthProvider = new GoogleAuthProvider();
+googleAuthProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
+googleAuthProvider.addScope('https://www.googleapis.com/auth/drive.file');
