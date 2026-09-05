@@ -8,6 +8,7 @@ import { WalletView } from './components/WalletView';
 import { AchievementsView } from './components/AchievementsView';
 import { LostBitcoinView } from './components/LostBitcoinView';
 import { DormantAccountSweeper } from './components/DormantAccountSweeper';
+import { SatoshiAiAdvisor } from './components/SatoshiAiAdvisor';
 import { INITIAL_HARDWARE, MINING_POOLS, INITIAL_ACHIEVEMENTS } from './data/hardware';
 import { INITIAL_LOST_WALLETS } from './data/lostWallets';
 import { DormantAccount } from './data/dormantAccounts';
@@ -388,6 +389,12 @@ export default function App() {
             blockProgress={blockProgress}
             totalHashRate={totalHashRate}
             totalPower={totalPower}
+          />
+        )}
+        {activeTab === 'ai_advisor' && (
+          <SatoshiAiAdvisor
+            gameState={gameState}
+            totalHashRate={totalHashRate}
           />
         )}
         {activeTab === 'lost_wallets' && (

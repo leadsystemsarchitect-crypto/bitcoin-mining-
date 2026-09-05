@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Wallet, ShoppingBag, Server, History, Award, TrendingUp, Zap, ShieldCheck, Search, Radio } from 'lucide-react';
+import { Cpu, Wallet, ShoppingBag, Server, History, Award, TrendingUp, Zap, ShieldCheck, Search, Radio, Bot } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -27,6 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabs = [
     { id: 'mining', label: 'Mining Rig', icon: Cpu },
     { id: 'shop', label: 'Hardware Shop', icon: ShoppingBag },
+    { id: 'ai_advisor', label: 'Satoshi AI Oracle', icon: Bot },
     { id: 'lost_wallets', label: 'Search Lost Bitcoin', icon: Search },
     { id: 'dormant_accounts', label: 'Dormant Account Sweeper', icon: Radio },
     { id: 'pools', label: 'Mining Pools', icon: Server },
