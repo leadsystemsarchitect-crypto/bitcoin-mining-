@@ -1,0 +1,6 @@
+{
+  "name": "Bitcoin Miner & Generator",
+  "description": "An immersive Bitcoin mining rig simulator and crypto generation dashboard with hardware upgrades, hash rate boosters, and blockchain statistics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
