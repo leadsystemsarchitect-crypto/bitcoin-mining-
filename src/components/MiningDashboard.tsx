@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Zap, Activity, Thermometer, ShieldCheck, Play, Pause, RefreshCw, Flame, ArrowUpRight, Server } from 'lucide-react';
 import { GameState, HardwareItem } from '../types';
+import { ThermalMonitoringGraph } from './ThermalMonitoringGraph';
 
 interface MiningDashboardProps {
   gameState: GameState;
@@ -9,6 +10,8 @@ interface MiningDashboardProps {
   blockProgress: number;
   totalHashRate: number;
   totalPower: number;
+  onRepairHardware?: (id: string) => void;
+  onSetOverclock?: (level: number) => void;
 }
 
 export const MiningDashboard: React.FC<MiningDashboardProps> = ({
@@ -18,6 +21,8 @@ export const MiningDashboard: React.FC<MiningDashboardProps> = ({
   blockProgress,
   totalHashRate,
   totalPower,
+  onRepairHardware,
+  onSetOverclock,
 }) => {
   const [clickAnims, setClickAnims] = useState<{ id: number; x: number; y: number }[]>([]);
   const [temperature, setTemperature] = useState(48);
@@ -109,6 +114,14 @@ export const MiningDashboard: React.FC<MiningDashboardProps> = ({
         </div>
       </div>
 
+      {/* D3.js Force-Directed Thermal Monitoring Visualization */}
+      <ThermalMonitoringGraph
+        gameState={gameState}
+        hardwareList={hardwareList}
+        onRepairHardware={onRepairHardware}
+        onSetOverclock={onSetOverclock}
+      />
+
       {/* Grid of Stats and Hardware Racks */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Active Racks */}
@@ -174,7 +187,7 @@ export const MiningDashboard: React.FC<MiningDashboardProps> = ({
             </h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {gameState.blocksMined.slice(-5).reverse().map((block, idx) => (
-                <div key={idx} className="bg-zinc-950 border border-zinc-800/80 rounded-lg p-3 flex items-center justify-between text-xs font-mono">
+                <div key={`${block.hash || block.blockNumber}_${idx}`} className="bg-zinc-950 border border-zinc-800/80 rounded-lg p-3 flex items-center justify-between text-xs font-mono">
                   <div className="space-y-0.5">
                     <div className="text-emerald-400 font-bold">Block #{block.blockNumber}</div>
                     <div className="text-zinc-500 truncate max-w-[200px] sm:max-w-xs">{block.hash}</div>

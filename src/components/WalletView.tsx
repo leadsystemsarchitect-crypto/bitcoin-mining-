@@ -196,8 +196,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
         <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950">
           <div className="divide-y divide-zinc-900 max-h-60 overflow-y-auto">
-            {gameState.transactions.slice().reverse().map((tx) => (
-              <div key={tx.id} className="p-3.5 flex items-center justify-between text-xs font-mono">
+            {gameState.transactions.slice().reverse().map((tx, idx) => (
+              <div key={`${tx.id || 'tx'}_${idx}`} className="p-3.5 flex items-center justify-between text-xs font-mono">
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                     tx.type === 'mined' ? 'bg-emerald-500/10 text-emerald-400' :

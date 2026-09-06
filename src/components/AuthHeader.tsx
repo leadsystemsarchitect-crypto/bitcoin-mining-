@@ -5,6 +5,7 @@ import { googleSignIn, logout, initAuth } from '../lib/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ShieldCheck, User as UserIcon, LogOut, Loader2, Cloud, CloudCheck } from 'lucide-react';
 import { GameState } from '../types';
+import { sanitizeTransactions } from '../lib/transactions';
 
 interface AuthHeaderProps {
   gameState: GameState;
@@ -27,6 +28,9 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
           if (snap.exists()) {
             const cloudData = snap.data() as GameState;
             if (cloudData && cloudData.btcBalance !== undefined) {
+              if (cloudData.transactions) {
+                cloudData.transactions = sanitizeTransactions(cloudData.transactions);
+              }
               setGameState(cloudData);
             }
           }

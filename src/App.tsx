@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Cpu } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { MiningDashboard } from './components/MiningDashboard';
@@ -15,6 +15,7 @@ import { INITIAL_HARDWARE, MINING_POOLS, INITIAL_ACHIEVEMENTS } from './data/har
 import { INITIAL_LOST_WALLETS } from './data/lostWallets';
 import { DormantAccount } from './data/dormantAccounts';
 import { GameState, HardwareItem } from './types';
+import { generateTxId, sanitizeTransactions } from './lib/transactions';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('mining');
@@ -28,6 +29,9 @@ export default function App() {
         if (!parsed.lostWallets) parsed.lostWallets = {};
         if (!parsed.dormantSwept) parsed.dormantSwept = {};
         if (!parsed.hardwareHealth) parsed.hardwareHealth = { usb_erupter: 100 };
+        if (parsed.transactions) {
+          parsed.transactions = sanitizeTransactions(parsed.transactions);
+        }
         return parsed;
       } catch (e) {
         console.error(e);
@@ -63,6 +67,7 @@ export default function App() {
 
 
   const [blockProgress, setBlockProgress] = useState<number>(12);
+  const blockProgressRef = useRef<number>(12);
   const [priceChange24h, setPriceChange24h] = useState<number>(3.8);
   const [idleReport, setIdleReport] = useState<null | { hours: number; btc: number; cost: number }>(null);
 
@@ -147,7 +152,7 @@ export default function App() {
               updatedLostWallets[lw.id] = { status: 'recovered', progress: 100 };
               addedBtcFromWallets += lw.rewardBtc;
               newTxList.push({
-                id: `tx_wallet_${Date.now()}_${lw.id}`,
+                id: generateTxId(`tx_wallet_${lw.id}`),
                 type: 'lost_wallet_recovered',
                 amountBtc: lw.rewardBtc,
                 amountUsd: 0,
@@ -181,18 +186,16 @@ export default function App() {
         };
       });
 
-      // Advance block progress
-      setBlockProgress((prev) => {
-        const pool = MINING_POOLS.find((p) => p.id === gameState.activePoolId) || MINING_POOLS[0];
-        const increment = Math.max(0.5, (totalHashRate / 20000) * pool.luckBonus);
-        const nextProg = prev + increment;
+      // Advance block progress cleanly outside setState updater
+      const pool = MINING_POOLS.find((p) => p.id === gameState.activePoolId) || MINING_POOLS[0];
+      const increment = Math.max(0.5, (totalHashRate / 20000) * pool.luckBonus);
+      blockProgressRef.current += increment;
 
-        if (nextProg >= 100) {
-          triggerBlockSolved();
-          return 0;
-        }
-        return nextProg;
-      });
+      if (blockProgressRef.current >= 100) {
+        blockProgressRef.current = 0;
+        triggerBlockSolved();
+      }
+      setBlockProgress(blockProgressRef.current);
     }, 1000);
 
     return () => clearInterval(interval);
@@ -213,7 +216,7 @@ export default function App() {
       if (prev.dormantSwept?.[acc.id]) return prev;
 
       const newTx = {
-        id: `tx_dormant_${Date.now()}_${acc.id}`,
+        id: generateTxId(`tx_dormant_${acc.id}`),
         type: 'dormant_swept' as const,
         amountBtc: acc.balanceBtc,
         amountUsd: 0,
@@ -232,15 +235,13 @@ export default function App() {
     });
   };
 
-
-
   const triggerBlockSolved = () => {
     const pool = MINING_POOLS.find((p) => p.id === gameState.activePoolId) || MINING_POOLS[0];
     const reward = 0.005 + Math.random() * 0.015; // 0.005 to 0.02 BTC block reward
-    const blockNum = gameState.blocksMined.length + 1;
     const mockHash = '0000000000000000000' + Math.random().toString(16).substring(2, 15) + Math.random().toString(16).substring(2, 15);
 
     setGameState((prev) => {
+      const blockNum = prev.blocksMined.length + 1;
       const newBlocks = [
         ...prev.blocksMined,
         {
@@ -253,7 +254,7 @@ export default function App() {
       ];
 
       const newTx = {
-        id: `tx_${Date.now()}`,
+        id: generateTxId('tx_mined'),
         type: 'mined' as const,
         amountBtc: reward,
         amountUsd: 0,
@@ -276,7 +277,12 @@ export default function App() {
       btcBalance: prev.btcBalance + 0.0000001,
       totalHashesGenerated: prev.totalHashesGenerated + 1,
     }));
-    setBlockProgress((prev) => Math.min(100, prev + 1.5));
+    blockProgressRef.current = Math.min(100, blockProgressRef.current + 1.5);
+    if (blockProgressRef.current >= 100) {
+      blockProgressRef.current = 0;
+      triggerBlockSolved();
+    }
+    setBlockProgress(blockProgressRef.current);
   };
 
   // Buy Hardware
@@ -304,7 +310,7 @@ export default function App() {
       };
 
       const newTx = {
-        id: `tx_${Date.now()}`,
+        id: generateTxId('tx_bought_hw'),
         type: 'bought_hardware' as const,
         amountBtc: canAffordUsd ? 0 : -item.costBtc,
         amountUsd: canAffordUsd ? -item.cost : 0,
@@ -330,7 +336,6 @@ export default function App() {
     const repairCost = Math.max(5, Math.round(item.cost * 0.15 * ((100 - health) / 100)));
 
     if (gameState.usdBalance < repairCost) {
-      alert('Insufficient USD balance to repair hardware.');
       return;
     }
 
@@ -344,7 +349,7 @@ export default function App() {
       transactions: [
         ...prev.transactions,
         {
-          id: `tx_repair_${Date.now()}`,
+          id: generateTxId('tx_repair'),
           type: 'electricity_fee',
           amountBtc: 0,
           amountUsd: -repairCost,
@@ -366,7 +371,7 @@ export default function App() {
 
     setGameState((prev) => {
       const newTx = {
-        id: `tx_${Date.now()}`,
+        id: generateTxId('tx_sold_btc'),
         type: 'sold' as const,
         amountBtc: -amount,
         amountUsd: usdProceeds,
@@ -389,7 +394,7 @@ export default function App() {
 
     setGameState((prev) => {
       const newTx = {
-        id: `tx_${Date.now()}`,
+        id: generateTxId('tx_buy_btc'),
         type: 'sold' as const,
         amountBtc: btcReceived,
         amountUsd: -amountUsd,
@@ -408,7 +413,7 @@ export default function App() {
   const handleCashAppTransfer = (amountBtc: number, amountUsd: number, cashtag: string) => {
     setGameState((prev) => {
       const newTx = {
-        id: `tx_cashapp_${Date.now()}`,
+        id: generateTxId('tx_cashapp'),
         type: 'sold' as const,
         amountBtc: -amountBtc,
         amountUsd: -amountUsd,
@@ -476,6 +481,8 @@ export default function App() {
             blockProgress={blockProgress}
             totalHashRate={totalHashRate}
             totalPower={totalPower}
+            onRepairHardware={handleRepairHardware}
+            onSetOverclock={(lvl) => setGameState((prev) => ({ ...prev, overclockLevel: lvl }))}
           />
         )}
         {activeTab === 'ai_advisor' && (

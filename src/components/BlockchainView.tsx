@@ -72,7 +72,7 @@ export const BlockchainView: React.FC<BlockchainViewProps> = ({ gameState }) => 
                 </thead>
                 <tbody className="divide-y divide-zinc-900">
                   {gameState.blocksMined.slice().reverse().map((block, idx) => (
-                    <tr key={idx} className="hover:bg-zinc-900/40 transition-colors">
+                    <tr key={`${block.hash || block.blockNumber}_${idx}`} className="hover:bg-zinc-900/40 transition-colors">
                       <td className="p-3 text-emerald-400 font-bold">#{block.blockNumber}</td>
                       <td className="p-3 text-zinc-300 truncate max-w-xs">{block.hash}</td>
                       <td className="p-3 text-zinc-400">{block.pool}</td>
