@@ -69,7 +69,6 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
         return;
       }
       console.error('Sign-in error:', err);
-      alert('Sign-in failed: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -90,7 +89,6 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({ gameState, setGameState 
     } catch (e) {
       console.error('Sync failed:', e);
       setSyncStatus('idle');
-      alert('Cloud sync failed.');
     }
   };
 

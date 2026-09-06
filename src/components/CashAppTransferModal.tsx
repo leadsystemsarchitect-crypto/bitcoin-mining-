@@ -16,28 +16,30 @@ export const CashAppTransferModal: React.FC<CashAppTransferModalProps> = ({
   const [cashtag, setCashtag] = useState<string>('');
   const [transferType, setTransferType] = useState<'btc' | 'usd'>('btc');
   const [amount, setAmount] = useState<string>('0.01');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'transferring' | 'success'>('idle');
   const [transferSteps, setTransferSteps] = useState<string[]>([]);
 
   const handleTransfer = () => {
-    if (!cashtag.startsWith('$')) {
-      alert('Please enter a valid Cash App tag starting with $ (e.g. $SatoshiUser)');
+    setErrorMessage(null);
+    if (!cashtag.startsWith('$') || cashtag.length <= 1) {
+      setErrorMessage('Please enter a valid Cash App tag starting with $ (e.g. $SatoshiUser)');
       return;
     }
 
     const val = parseFloat(amount);
     if (isNaN(val) || val <= 0) {
-      alert('Please enter a valid transfer amount');
+      setErrorMessage('Please enter a valid transfer amount');
       return;
     }
 
     if (transferType === 'btc' && val > gameState.btcBalance) {
-      alert('Insufficient Bitcoin balance in wallet');
+      setErrorMessage('Insufficient Bitcoin balance in wallet');
       return;
     }
 
     if (transferType === 'usd' && val > gameState.usdBalance) {
-      alert('Insufficient USD balance in wallet');
+      setErrorMessage('Insufficient USD balance in wallet');
       return;
     }
 
@@ -138,6 +140,12 @@ export const CashAppTransferModal: React.FC<CashAppTransferModalProps> = ({
                 </button>
               </div>
             </div>
+
+            {errorMessage && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+                {errorMessage}
+              </div>
+            )}
 
             <div className="pt-2">
               <button
